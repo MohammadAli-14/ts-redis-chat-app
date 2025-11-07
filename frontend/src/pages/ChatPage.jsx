@@ -10,6 +10,7 @@ import ChatContainer from "../components/ChatContainer";
 import GroupChatContainer from "../components/GroupChatContainer";
 import NoConversationPlaceholder from "../components/NoConversationPlaceholder";
 import CreateGroupModal from "../components/CreateGroupModal";
+import LogoutConfirmationDialog from "../components/LogoutConfirmationDialog"; // ← ADD IMPORT
 import { UsersIcon, SwordIcon, LogOutIcon } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 
@@ -17,51 +18,50 @@ function ChatPage() {
   const { activeTab, selectedUser, selectedGroup, setSelectedUser, setSelectedGroup } = useChatStore();
   const { logout } = useAuthStore();
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false); // ← ADD STATE
   const [isMobile, setIsMobile] = useState(false);
 
-  // Enhanced mobile detection with debounce
+  // ✅ IMPROVED MOBILE DETECTION
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      const isMobileView = window.innerWidth < 768;
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsMobile(isMobileView && isTouchDevice);
     };
     
     checkMobile();
     
-    let timeoutId;
     const handleResize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(checkMobile, 100);
+      requestAnimationFrame(checkMobile);
     };
     
     window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      clearTimeout(timeoutId);
-    };
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleLogout = () => {
+  // ← ADD LOGOUT HANDLERS
+  const handleLogoutClick = () => {
+    setIsLogoutDialogOpen(true);
+  };
+
+  const handleLogoutConfirm = () => {
     logout();
+  };
+
+  const handleLogoutCancel = () => {
+    setIsLogoutDialogOpen(false);
   };
 
   // Determine what to show based on device and selection
   const showChatArea = selectedUser || selectedGroup;
   const showSidebar = !showChatArea || !isMobile;
 
-  console.log('=== DEBUG CHAT PAGE ===');
-  console.log('isMobile:', isMobile);
-  console.log('selectedUser:', selectedUser);
-  console.log('selectedGroup:', selectedGroup);
-  console.log('showChatArea:', showChatArea);
-  console.log('showSidebar:', showSidebar);
-
   return (
-    <div className={`w-full ${isMobile ? 'h-dynamic-screen safe-area' : 'h-screen'} bg-gradient-to-br from-slate-900 via-slate-800/30 to-slate-900`}>
+    <div className={`w-full ${isMobile ? 'min-h-dynamic-screen safe-area' : 'h-screen'} bg-gradient-to-br from-slate-900 via-slate-800/30 to-slate-900`}>
       <div className={`relative w-full ${isMobile ? 'h-full' : 'h-full'} max-w-6xl mx-auto`}>
         <BorderAnimatedContainer>
           <div className="w-full h-full flex flex-col md:flex-row">
             {/* LEFT SIDE - Contacts/Chats/Groups List */}
-            {/* Always show sidebar on desktop, conditionally on mobile */}
             <div className={`
               w-full md:w-80 flex-col
               bg-slate-800/50 backdrop-blur-sm
@@ -103,10 +103,10 @@ function ChatPage() {
 
                   {/* Action Buttons - Right Side (Only Logout) */}
                   <div className="flex items-center gap-2">
-                    {/* Only Logout Button - Sound toggle removed */}
+                    {/* Logout Button - UPDATED */}
                     <button
-                      onClick={handleLogout}
-                      className="p-2 text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-all duration-200 group"
+                      onClick={handleLogoutClick} // ← UPDATED
+                      className="p-2 text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-all duration-200 group touch-target"
                       title="Logout"
                     >
                       <LogOutIcon className="w-5 h-5" />
@@ -131,7 +131,7 @@ function ChatPage() {
                 <div className="px-4 py-3 border-b border-amber-500/20">
                   <button
                     onClick={() => setIsCreateGroupModalOpen(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-400 rounded-lg hover:from-amber-500/20 hover:to-orange-500/20 transition-all duration-200 border border-amber-500/30 hover:border-amber-500/50 group"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-400 rounded-lg hover:from-amber-500/20 hover:to-orange-500/20 transition-all duration-200 border border-amber-500/30 hover:border-amber-500/50 group touch-target"
                   >
                     <div className="relative">
                       <UsersIcon className="size-5" />
@@ -151,7 +151,6 @@ function ChatPage() {
             </div>
 
             {/* RIGHT SIDE - Chat Area */}
-            {/* Show chat area when we have a selection OR always on desktop when no selection */}
             <div className={`
               flex-1 flex-col bg-slate-900/50 backdrop-blur-sm
               ${showChatArea ? 'flex' : 'hidden md:flex'}
@@ -173,6 +172,13 @@ function ChatPage() {
       <CreateGroupModal
         isOpen={isCreateGroupModalOpen}
         onClose={() => setIsCreateGroupModalOpen(false)}
+      />
+
+      {/* ← ADD LOGOUT CONFIRMATION DIALOG */}
+      <LogoutConfirmationDialog
+        isOpen={isLogoutDialogOpen}
+        onClose={handleLogoutCancel}
+        onConfirm={handleLogoutConfirm}
       />
     </div>
   );

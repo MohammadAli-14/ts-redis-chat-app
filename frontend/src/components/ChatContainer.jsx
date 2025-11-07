@@ -1,3 +1,4 @@
+// frontend/src/components/ChatContainer.jsx - ENHANCED WITH AUTO-SCROLL
 import { useEffect, useRef, useState, memo, useCallback, useMemo } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
@@ -6,22 +7,46 @@ import NoChatHistoryPlaceholder from "./NoChatHistoryPlaceholder";
 import MessageInput from "./MessageInput";
 import MessagesLoadingSkeleton from "./MessagesLoadingSkeleton";
 import MessageReactions from "./MessageReactions";
-import { ArrowLeftIcon } from "lucide-react";
-import Logger from "../utils/logger";
+import MessageTimeDisplay from "./MessageTimeDisplay";
+import { ArrowLeftIcon, LoaderIcon } from "lucide-react";
 
-// Memoized message bubble component with optimized props
-const MemoizedMessageBubble = memo(({ message, isOwnMessage, authUser }) => {
-  const messageTime = useMemo(() => {
-    return new Date(message.createdAt).toLocaleTimeString(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }, [message.createdAt]);
+// FIXED MemoizedMessageBubble component with proper sender detection
+const MemoizedMessageBubble = memo(({ message, authUser }) => {
+  // ✅ FIXED: Proper sender detection that handles both object and string formats
+  const getIsOwnMessage = (message, authUser) => {
+    if (!message || !authUser) return false;
+    
+    // Handle both string senderId and populated sender object
+    const senderId = message.senderId?._id || message.senderId;
+    return senderId === authUser._id;
+  };
+
+  const isOwnMessage = getIsOwnMessage(message, authUser);
+
+  console.log("🔍 Message debug:", {
+    messageId: message._id,
+    senderId: message.senderId,
+    authUserId: authUser._id,
+    isOwnMessage: isOwnMessage,
+    senderType: typeof message.senderId
+  });
 
   return (
     <div
       className={`chat ${isOwnMessage ? "chat-end" : "chat-start"} group`}
     >
+      {/* Show avatar only for received messages */}
+      {!isOwnMessage && (
+        <div className="chat-image avatar">
+          <div className="w-8 rounded-full">
+            <img 
+              src={message.senderId?.profilePic || "/avatar.png"} 
+              alt={message.senderId?.fullName || "User"} 
+            />
+          </div>
+        </div>
+      )}
+      
       <div
         className={`chat-bubble relative max-w-xs md:max-w-md ${
           isOwnMessage
@@ -47,17 +72,25 @@ const MemoizedMessageBubble = memo(({ message, isOwnMessage, authUser }) => {
           currentReactions={message.reactions || {}}
         />
         
-        <p className="text-xs mt-1 opacity-75 flex items-center gap-1">
-          {messageTime}
-        </p>
+        <MessageTimeDisplay 
+          message={message} 
+          isOwnMessage={isOwnMessage} 
+        />
       </div>
+      
+      {/* Show sender name for received messages */}
+      {!isOwnMessage && (
+        <div className="chat-header text-slate-400 text-xs mt-1">
+          {message.senderId?.fullName || 'Unknown User'}
+        </div>
+      )}
     </div>
   );
 });
 
 MemoizedMessageBubble.displayName = 'MemoizedMessageBubble';
 
-// Main ChatContainer component
+// Enhanced ChatContainer with auto-scroll
 const ChatContainer = memo(function ChatContainer() {
   const {
     selectedUser,
@@ -70,14 +103,19 @@ const ChatContainer = memo(function ChatContainer() {
     setSelectedGroup,
     subscribeToReactions,
     unsubscribeFromReactions,
+    loadMoreMessages,
+    messagePagination,
+    typingUsers,
+    preloadConversations
   } = useChatStore();
+  
   const { authUser, onlineUsers } = useAuthStore();
-  const messageEndRef = useRef(null);
-  const messagesContainerRef = useRef(null);
   const [isMobile, setIsMobile] = useState(false);
-  const prevMessagesLengthRef = useRef(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const messagesContainerRef = useRef(null);
+  const messageEndRef = useRef(null); // ADDED: For auto-scroll
 
-  // Enhanced mobile detection with throttling
+  // Enhanced mobile detection
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -98,17 +136,33 @@ const ChatContainer = memo(function ChatContainer() {
     };
   }, []);
 
+  // Auto-scroll to bottom when messages change - ADDED THIS FEATURE
+  useEffect(() => {
+    if (messageEndRef.current && messages.length > 0) {
+      messageEndRef.current.scrollIntoView({ 
+        behavior: "smooth",
+        block: "nearest"
+      });
+    }
+  }, [messages]);
+
+  // Preload user conversations when user is selected
+  useEffect(() => {
+    if (selectedUser && authUser) {
+      const conversationId = [authUser._id, selectedUser._id].sort().join('_');
+      preloadConversations([conversationId]);
+    }
+  }, [selectedUser, authUser, preloadConversations]);
+
   // Optimized message fetching and subscription
   useEffect(() => {
     if (selectedUser && selectedUser._id) {
-      Logger.debug('Fetching messages for user:', selectedUser._id);
       getMessagesByUserId(selectedUser._id);
       subscribeToMessages();
       subscribeToReactions();
     }
 
     return () => {
-      Logger.debug('Cleaning up subscriptions');
       unsubscribeFromMessages();
       unsubscribeFromReactions();
     };
@@ -121,56 +175,32 @@ const ChatContainer = memo(function ChatContainer() {
     unsubscribeFromReactions
   ]);
 
-  // Optimized scroll behavior with conditional auto-scroll
-  useEffect(() => {
-    if (messageEndRef.current && messages.length > 0) {
-      const isUserNearBottom = () => {
-        const container = messagesContainerRef.current;
-        if (!container) return true;
-        
-        const scrollTop = container.scrollTop;
-        const scrollHeight = container.scrollHeight;
-        const clientHeight = container.clientHeight;
-        const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-        
-        // Auto-scroll only if user is within 200px of bottom or new message is from them
-        return distanceFromBottom < 200 || 
-               messages[messages.length - 1]?.senderId === authUser._id ||
-               messages.length !== prevMessagesLengthRef.current;
-      };
-
-      if (isUserNearBottom()) {
-        messageEndRef.current.scrollIntoView({ 
-          behavior: messages.length !== prevMessagesLengthRef.current ? "smooth" : "auto",
-          block: "nearest"
-        });
-      }
-      
-      prevMessagesLengthRef.current = messages.length;
+  // Handle loading more messages with debouncing
+  const handleLoadMore = useCallback(async () => {
+    if (isLoadingMore || !messagePagination.hasMore) return;
+    
+    setIsLoadingMore(true);
+    try {
+      await loadMoreMessages();
+    } catch (error) {
+      console.error('Failed to load more messages:', error);
+    } finally {
+      setIsLoadingMore(false);
     }
-  }, [messages, authUser._id]);
+  }, [isLoadingMore, messagePagination.hasMore, loadMoreMessages]);
 
   const handleBackClick = useCallback(() => {
-    Logger.debug('Back button clicked, clearing selected user/group');
     setSelectedUser(null);
     setSelectedGroup(null);
   }, [setSelectedUser, setSelectedGroup]);
 
-  // Memoize message rendering for better performance
-  const renderMessage = useCallback((msg) => {
-    const isOwnMessage = msg.senderId === authUser._id;
-    return (
-      <MemoizedMessageBubble
-        key={msg._id}
-        message={msg}
-        isOwnMessage={isOwnMessage}
-        authUser={authUser}
-      />
-    );
-  }, [authUser]);
-
-  // Memoize messages array to prevent unnecessary re-renders
-  const memoizedMessages = useMemo(() => messages, [messages]);
+  // Get typing users for current chat
+  const currentTypingUsers = useCallback(() => {
+    if (!selectedUser) return [];
+    const key = `user_${selectedUser._id}`;
+    const chatTypingUsers = typingUsers.get(key);
+    return chatTypingUsers ? Array.from(chatTypingUsers.values()) : [];
+  }, [typingUsers, selectedUser]);
 
   // Memoize user online status
   const isUserOnline = useMemo(() => 
@@ -188,8 +218,6 @@ const ChatContainer = memo(function ChatContainer() {
       </div>
     );
   }
-
-  Logger.debug('ChatContainer rendering with', memoizedMessages.length, 'messages');
 
   return (
     <div className="flex flex-col h-full bg-slate-900">
@@ -239,24 +267,62 @@ const ChatContainer = memo(function ChatContainer() {
         </div>
       )}
       
-      {/* Messages Area */}
+      {/* Messages Area with Auto-scroll - ENHANCED */}
       <div 
         ref={messagesContainerRef}
-        className={`flex-1 overflow-y-auto mobile-scroll scrollbar-thin ${
+        className={`flex-1 overflow-y-auto ${
           isMobile 
             ? 'px-3 py-3 pb-4 messages-container-mobile' 
             : 'px-4 md:px-6 py-4'
         }`}
       >
-        {memoizedMessages.length > 0 && !isMessagesLoading ? (
+        {messages.length > 0 && !isMessagesLoading ? (
           <div className={`space-y-3 md:space-y-4 ${!isMobile ? 'max-w-3xl mx-auto' : ''}`}>
-            {memoizedMessages.map(renderMessage)}
+            {/* Loading indicator for older messages */}
+            {isLoadingMore && (
+              <div className="flex justify-center py-2">
+                <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-full">
+                  <LoaderIcon className="size-4 animate-spin text-cyan-400" />
+                  <span className="text-xs text-slate-400">Loading older messages...</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Messages */}
+            {messages.map((message) => (
+              <MemoizedMessageBubble
+                key={message._id}
+                message={message}
+                authUser={authUser}
+              />
+            ))}
+            
+            {/* Auto-scroll anchor - ADDED THIS */}
             <div ref={messageEndRef} />
           </div>
         ) : isMessagesLoading ? (
           <MessagesLoadingSkeleton />
         ) : (
           <NoChatHistoryPlaceholder name={selectedUser.fullName} />
+        )}
+        
+        {/* Typing indicators */}
+        {currentTypingUsers().length > 0 && (
+          <div className="sticky bottom-4 left-4">
+            <div className="flex items-center gap-2 bg-slate-800/80 backdrop-blur-sm rounded-full px-4 py-2">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+              <span className="text-slate-400 text-xs">
+                {currentTypingUsers().length === 1 
+                  ? `${currentTypingUsers()[0].fullName} is typing...`
+                  : `${currentTypingUsers().length} people are typing...`
+                }
+              </span>
+            </div>
+          </div>
         )}
       </div>
 
@@ -268,7 +334,7 @@ const ChatContainer = memo(function ChatContainer() {
       </div>
     </div>
   );
-});
+}); 
 
 ChatContainer.displayName = 'ChatContainer';
 

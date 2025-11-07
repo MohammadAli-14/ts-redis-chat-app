@@ -115,22 +115,61 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  connectSocket: () => {
-    const { authUser } = get();
-    if (!authUser || get().socket?.connected) return;
+// Enhanced connectSocket with better error handling
+connectSocket: () => {
+  const { authUser } = get();
+  if (!authUser) {
+    console.log("❌ No auth user, skipping socket connection");
+    return;
+  }
 
-    const socket = io(BASE_URL, {
-      withCredentials: true,
-    });
+  if (get().socket?.connected) {
+    console.log("✅ Socket already connected");
+    return;
+  }
 
-    socket.connect();
+  console.log("🔌 Connecting socket for user:", authUser._id);
 
+  const socket = io(BASE_URL, {
+    withCredentials: true,
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000
+  });
+
+  // Connection events
+  socket.on("connect", () => {
+    console.log("✅ Socket connected successfully, ID:", socket.id);
+    console.log("👤 Authenticated user ID:", authUser._id);
     set({ socket });
+  });
 
-    socket.on("getOnlineUsers", (userIds) => {
-      set({ onlineUsers: userIds });
+  socket.on("connect_error", (error) => {
+    console.error("❌ Socket connection error:", error);
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log("🔌 Socket disconnected:", reason);
+  });
+
+  // Message events for debugging
+  socket.on("newPrivateMessage", (message) => {
+    console.log("📨 Socket: New private message received", {
+      from: message.senderId?._id,
+      to: 'current user',
+      messageId: message._id,
+      text: message.text?.substring(0, 50)
     });
-  },
+  });
+
+  socket.on("getOnlineUsers", (userIds) => {
+    console.log("👥 Online users updated:", userIds.length, "users online");
+    set({ onlineUsers: userIds });
+  });
+
+  set({ socket });
+},
 
   disconnectSocket: () => {
     if (get().socket?.connected) get().socket.disconnect();

@@ -4,30 +4,36 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
+    // Performance optimizations
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true,
+        drop_console: true, // Remove console logs in production
         drop_debugger: true
       }
     },
-    target: 'esnext',
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['lucide-react', 'framer-motion'],
+          // Split vendor code for better caching
+          vendor: ['react', 'react-dom', 'zustand'],
           utils: ['axios', 'socket.io-client'],
-          store: ['./src/store/useAuthStore', './src/store/useChatStore'] // Add store chunks
-        }
+          ui: ['lucide-react', 'framer-motion']
+        },
+        // Optimize chunk names for better caching
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       }
+    },
+    // Enable brotli compression for better loading
+    brotliSize: true,
+    chunkSizeWarningLimit: 1000
+  },
+  server: {
+    // Development server optimizations
+    hmr: {
+      overlay: false
     }
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom', 'lucide-react'],
-    exclude: ['js-big-decimal'] // Exclude if not needed
-  },
-  css: {
-    devSourcemap: false, // Disable in development for better performance
   }
 })

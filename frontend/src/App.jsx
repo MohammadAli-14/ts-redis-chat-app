@@ -10,6 +10,7 @@ import PageLoader from "./components/PageLoader";
 import { Toaster } from "react-hot-toast";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
+
 // Lazy load heavy components
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 
@@ -30,7 +31,7 @@ function App() {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px]" />
       <div className="absolute top-0 -left-4 size-96 bg-amber-500/20 blur-[100px]" />
       <div className="absolute bottom-0 -right-4 size-96 bg-cyan-500/20 blur-[100px]" />
-
+      
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Landing page for unauthenticated users, chat for authenticated */}

@@ -5,6 +5,7 @@ import NoChatHistoryPlaceholder from "./NoChatHistoryPlaceholder";
 import MessageInput from "./MessageInput";
 import MessagesLoadingSkeleton from "./MessagesLoadingSkeleton";
 import MessageReactions from "./MessageReactions";
+import MessageTimeDisplay from "./MessageTimeDisplay";
 import { ArrowLeftIcon, UsersIcon, MoreVerticalIcon } from "lucide-react";
 import GroupInfoModal from "./GroupInfoModal";
 
@@ -17,8 +18,10 @@ function GroupChatContainer() {
     subscribeToGroupMessages,
     unsubscribeFromGroupMessages,
     setSelectedGroup,
+    subscribeToReactions,
+    unsubscribeFromReactions,
   } = useChatStore();
-  const { authUser } = useAuthStore();
+  const { authUser, socket } = useAuthStore();
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
@@ -46,22 +49,34 @@ function GroupChatContainer() {
     };
   }, []);
 
+  // ✅ FIXED: Enhanced group message management
   useEffect(() => {
     if (selectedGroup) {
+      console.log('🔍 Initializing group chat for:', selectedGroup._id);
       getGroupMessages(selectedGroup._id);
       subscribeToGroupMessages();
+      subscribeToReactions();
       
-      const socket = useAuthStore.getState().socket;
+      // Join group room
       if (socket && selectedGroup._id) {
         socket.emit("joinGroup", selectedGroup._id);
+        console.log('✅ Joined group room:', selectedGroup._id);
       }
     }
 
     return () => {
       unsubscribeFromGroupMessages();
+      unsubscribeFromReactions();
+      
+      // Leave group room
+      if (socket && selectedGroup?._id) {
+        socket.emit("leaveGroup", selectedGroup._id);
+        console.log('✅ Left group room:', selectedGroup._id);
+      }
     };
-  }, [selectedGroup, getGroupMessages, subscribeToGroupMessages, unsubscribeFromGroupMessages]);
+  }, [selectedGroup, getGroupMessages, subscribeToGroupMessages, unsubscribeFromGroupMessages, subscribeToReactions, unsubscribeFromReactions, socket]);
 
+  // Auto-scroll to bottom
   useEffect(() => {
     if (messageEndRef.current && groupMessages.length > 0) {
       messageEndRef.current.scrollIntoView({ 
@@ -79,7 +94,6 @@ function GroupChatContainer() {
     setShowGroupInfo(true);
   };
 
-  // Guard clause to prevent rendering when no group is selected
   if (!selectedGroup) {
     return (
       <div className="flex flex-col h-full">
@@ -94,7 +108,7 @@ function GroupChatContainer() {
 
   return (
     <div className="flex flex-col h-full bg-slate-900">
-      {/* Enhanced Mobile Header */}
+      {/* Header */}
       {isMobile && (
         <div className="sticky top-0 z-30 bg-slate-900 border-b border-slate-700/50 chat-safe-area">
           <div className="flex items-center justify-between p-4">
@@ -244,7 +258,7 @@ function GroupChatContainer() {
   );
 }
 
-// Enhanced GroupMessageBubble component with mobile optimizations
+// ✅ FIXED: Enhanced GroupMessageBubble with better reaction handling
 const GroupMessageBubble = ({ message, authUser, isSystem, isMobile }) => {
   if (isSystem) {
     return (
@@ -256,7 +270,10 @@ const GroupMessageBubble = ({ message, authUser, isSystem, isMobile }) => {
     );
   }
 
-  const isOwnMessage = message.senderId?._id === authUser._id;
+  // Handle both string senderId and populated sender object
+  const senderId = message.senderId?._id || message.senderId;
+  const isOwnMessage = senderId === authUser._id;
+  const senderName = message.senderId?.fullName || 'Unknown User';
 
   // File download handler
   const handleFileDownload = () => {
@@ -275,7 +292,7 @@ const GroupMessageBubble = ({ message, authUser, isSystem, isMobile }) => {
     <div className={`chat ${isOwnMessage ? "chat-end" : "chat-start"} group px-1`}>
       {!isOwnMessage && (
         <div className="chat-header text-slate-400 text-xs md:text-sm mb-1 px-2">
-          {message.senderId?.fullName || 'Unknown User'}
+          {senderName}
         </div>
       )}
       <div
@@ -335,19 +352,18 @@ const GroupMessageBubble = ({ message, authUser, isSystem, isMobile }) => {
         
         {message.text && <p className="break-words text-sm md:text-base">{message.text}</p>}
         
-        {/* Message Reactions */}
+        {/* ✅ FIXED: Message Reactions with real-time updates */}
         <MessageReactions 
           messageId={message._id}
           messageType="group"
           currentReactions={message.reactions || {}}
+          groupId={message.groupId}
         />
         
-        <p className="text-xs mt-1 opacity-75 flex items-center gap-1">
-          {new Date(message.createdAt).toLocaleTimeString(undefined, {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </p>
+        <MessageTimeDisplay 
+          message={message} 
+          isOwnMessage={isOwnMessage} 
+        />
       </div>
     </div>
   );
