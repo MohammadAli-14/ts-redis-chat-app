@@ -65,6 +65,8 @@ const groupMessageSchema = new mongoose.Schema(
 groupMessageSchema.index({ groupId: 1, createdAt: -1 });
 groupMessageSchema.index({ senderId: 1 });
 groupMessageSchema.index({ "readBy.userId": 1 });
+// New compound index for better performance
+groupMessageSchema.index({ groupId: 1, messageType: 1, createdAt: -1 });
 
 const GroupMessage = mongoose.model("GroupMessage", groupMessageSchema);
 

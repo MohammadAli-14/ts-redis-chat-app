@@ -1,8 +1,10 @@
+// backend/src/controllers/reaction.controller.js - ENHANCED WITH CONSISTENT GROUP ROOM HANDLING
 import MessageReaction from "../models/MessageReaction.js";
 import Message from "../models/Message.js";
 import GroupMessage from "../models/GroupMessage.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
 
+// ENHANCED addReaction with consistent group room handling
 export const addReaction = async (req, res) => {
   try {
     const { messageId, emoji, messageType } = req.body;
@@ -12,20 +14,21 @@ export const addReaction = async (req, res) => {
       return res.status(400).json({ message: "Message ID, emoji, and message type are required" });
     }
 
-    // Validate emoji format (basic validation)
+    // Validate emoji format
     if (emoji.length > 10) {
       return res.status(400).json({ message: "Invalid emoji" });
     }
 
     // Check if message exists based on type and user has access
     let message;
+    let groupId;
+
     if (messageType === "private") {
       message = await Message.findOne({
         _id: messageId,
         $or: [{ senderId: userId }, { receiverId: userId }]
       });
     } else if (messageType === "group") {
-      // For group messages, we need to check if user is a member of the group
       message = await GroupMessage.findById(messageId)
         .populate("groupId");
       
@@ -36,6 +39,7 @@ export const addReaction = async (req, res) => {
         if (!isMember) {
           return res.status(403).json({ message: "You are not a member of this group" });
         }
+        groupId = message.groupId._id;
       }
     } else {
       return res.status(400).json({ message: "Invalid message type" });
@@ -59,14 +63,13 @@ export const addReaction = async (req, res) => {
       return res.status(400).json({ message: "You have already reacted with this emoji" });
     }
 
-    // Create reaction with proper fields based on message type
+    // Create reaction with proper fields
     const reactionData = {
       userId,
       emoji,
       messageType,
     };
 
-    // Set the appropriate ID field based on message type
     if (messageType === "private") {
       reactionData.messageId = messageId;
     } else {
@@ -80,7 +83,7 @@ export const addReaction = async (req, res) => {
     const populatedReaction = await MessageReaction.findById(reaction._id)
       .populate("userId", "fullName profilePic");
 
-    // Emit socket event
+    // ✅ FIXED: Enhanced socket emission with consistent room names
     if (messageType === "private") {
       // For private messages, notify both users
       const receiverId = message.senderId.toString() === userId.toString() 
@@ -92,7 +95,7 @@ export const addReaction = async (req, res) => {
         io.to(receiverSocketId).emit("messageReactionAdded", {
           messageId,
           reaction: populatedReaction,
-          messageType: "private" // ADDED THIS
+          messageType: "private"
         });
       }
 
@@ -102,24 +105,21 @@ export const addReaction = async (req, res) => {
         io.to(senderSocketId).emit("messageReactionAdded", {
           messageId,
           reaction: populatedReaction,
-          messageType: "private" // ADDED THIS
+          messageType: "private"
         });
       }
     } else if (messageType === "group") {
-      // For group messages, notify all group members
-      if (message && message.groupId) {
-        // Use the group room name consistently
-        const roomName = `group_${message.groupId._id}`;
-        
-        // Emit to the group room with proper data structure
-        io.to(roomName).emit("messageReactionAdded", {
-          messageId: messageId,
-          reaction: populatedReaction,
-          messageType: messageType
-        });
-        
-        console.log(`Emitted reaction to room: ${roomName}`);
-      }
+      // ✅ FIXED: Use consistent group room naming
+      const roomName = `group_${groupId}`;
+      
+      // Emit to the entire group room
+      io.to(roomName).emit("messageReactionAdded", {
+        messageId: messageId,
+        reaction: populatedReaction,
+        messageType: "group"
+      });
+      
+      console.log(`✅ Emitted reaction to group room: ${roomName}`);
     }
 
     res.status(201).json({
@@ -133,15 +133,11 @@ export const addReaction = async (req, res) => {
       return res.status(400).json({ message: "You have already reacted with this emoji" });
     }
     
-    // Handle custom validation errors
-    if (error.message.includes("is required")) {
-      return res.status(400).json({ message: error.message });
-    }
-    
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
+// ENHANCED removeReaction with consistent group room handling
 export const removeReaction = async (req, res) => {
   try {
     const { reactionId } = req.params;
@@ -157,13 +153,11 @@ export const removeReaction = async (req, res) => {
     }
 
     const { messageId, groupMessageId, messageType, emoji } = reaction;
+    const actualMessageId = messageType === "private" ? messageId : groupMessageId;
 
     await MessageReaction.deleteOne({ _id: reactionId });
 
-    // Determine the actual message ID for socket emission
-    const actualMessageId = messageType === "private" ? messageId : groupMessageId;
-
-    // Emit socket event
+    // ✅ FIXED: Enhanced socket emission
     if (messageType === "private") {
       const message = await Message.findById(actualMessageId);
       if (message) {
@@ -177,32 +171,32 @@ export const removeReaction = async (req, res) => {
             messageId: actualMessageId,
             userId: userId.toString(),
             emoji,
-            messageType: "private" // ADDED THIS FOR CONSISTENCY
+            messageType: "private"
           });
         }
 
-        // Also notify the sender
         const senderSocketId = getReceiverSocketId(userId.toString());
         if (senderSocketId && senderSocketId !== receiverSocketId) {
           io.to(senderSocketId).emit("messageReactionRemoved", {
             messageId: actualMessageId,
             userId: userId.toString(),
             emoji,
-            messageType: "private" // ADDED THIS FOR CONSISTENCY
+            messageType: "private"
           });
         }
       }
     } else if (messageType === "group") {
       const groupMessage = await GroupMessage.findById(actualMessageId).populate("groupId");
       if (groupMessage && groupMessage.groupId) {
+        // ✅ FIXED: Use consistent group room naming
         const roomName = `group_${groupMessage.groupId._id}`;
         io.to(roomName).emit("messageReactionRemoved", {
           messageId: actualMessageId,
           userId: userId.toString(),
           emoji,
-          messageType: messageType
+          messageType: "group"
         });
-        console.log(`Emitted reaction removal to room: ${roomName}`);
+        console.log(`✅ Emitted reaction removal to group room: ${roomName}`);
       }
     }
 
@@ -295,7 +289,7 @@ export const removeReactionByMessageAndEmoji = async (req, res) => {
             messageId: actualMessageId,
             userId: userId.toString(),
             emoji,
-            messageType: "private" // ADDED THIS FOR CONSISTENCY
+            messageType: "private"
           });
         }
 
@@ -306,7 +300,7 @@ export const removeReactionByMessageAndEmoji = async (req, res) => {
             messageId: actualMessageId,
             userId: userId.toString(),
             emoji,
-            messageType: "private" // ADDED THIS FOR CONSISTENCY
+            messageType: "private"
           });
         }
       }

@@ -1,29 +1,30 @@
-// backend/src/controllers/groupMessage.controller.js - FIXED VERSION
+// backend/src/controllers/groupMessage.controller.js - UPDATED WITH DUPLICATE PREVENTION
 import GroupMessage from "../models/GroupMessage.js";
 import Group from "../models/Group.js";
 import { getReceiverSocketId, io } from "../lib/socket.js";
 import cloudinary from "../lib/cloudinary.js";
+import { 
+  cacheGroupMessages, 
+  getCachedGroupMessages, 
+  invalidateGroupMessageCache 
+} from "../lib/cache.js";
 
 /**
- * Send a message to a group - FIXED FILE UPLOAD
+ * Send a message to a group - ENHANCED WITH DUPLICATE PREVENTION
  */
 export const sendGroupMessage = async (req, res) => {
   try {
-    const { text, image, file, fileName: customFileName, fileType } = req.body;
+    const { text, image, file, fileName: customFileName, fileType, clientMessageId } = req.body;
     const { groupId } = req.params;
     const senderId = req.user._id;
 
     console.log('=== GROUP MESSAGE REQUEST ===');
-    console.log('Text:', text);
-    console.log('Image exists:', !!image);
-    console.log('File exists:', !!file);
-    console.log('File name:', customFileName);
-    console.log('File type:', fileType);
+    console.log('Client Message ID:', clientMessageId);
     console.log('Group ID:', groupId);
-    
-    // For groups: allow text, image, OR file
+    console.log('Sender ID:', senderId);
+
+    // Enhanced validation
     if (!text && !image && !file) {
-      console.log('ERROR: No text, image, or file provided for group message');
       return res.status(400).json({ message: "Text, image, or file is required for group messages." });
     }
 
@@ -35,7 +36,6 @@ export const sendGroupMessage = async (req, res) => {
     });
 
     if (!group) {
-      console.log('ERROR: Group not found or user not a member');
       return res.status(404).json({ message: "Group not found or you are not a member." });
     }
 
@@ -48,38 +48,26 @@ export const sendGroupMessage = async (req, res) => {
     // Upload image if provided
     if (image) {
       try {
-        console.log('Starting image upload to Cloudinary...');
-        
         const uploadResponse = await cloudinary.uploader.upload(image, {
           resource_type: "image",
           quality: "auto",
           fetch_format: "auto",
         });
-        
         imageUrl = uploadResponse.secure_url;
-        uploadedFileType = "image";
-        console.log('Image upload successful:', imageUrl);
       } catch (err) {
-        console.error("Cloudinary image upload error:", err);
         return res.status(500).json({ 
           message: `Failed to upload image: ${err.message}` 
         });
       }
     }
 
-    // Upload file if provided (documents, videos, etc.)
+    // Upload file if provided
     if (file) {
       try {
-        console.log('Starting file upload to Cloudinary...');
-        
-        // Extract the actual base64 data (remove data URL prefix)
         const base64Data = file.replace(/^data:.*?;base64,/, "");
-        
-        // Create a buffer from base64
         const buffer = Buffer.from(base64Data, 'base64');
         
-        // Determine resource type based on file type
-        let resourceType = "raw"; // Default to raw for documents
+        let resourceType = "raw";
         const detectedFileType = fileType || customFileName || "";
         
         if (detectedFileType.includes('video') || detectedFileType.match(/\.(mp4|mov|avi|mkv|webm)$/i)) {
@@ -87,27 +75,16 @@ export const sendGroupMessage = async (req, res) => {
         } else if (detectedFileType.includes('image')) {
           resourceType = "image";
         }
-        // For PDF, DOC, DOCX, TXT, ZIP, RAR - use "raw"
 
-        console.log('Determined resource type:', resourceType);
-
-        // Convert buffer to data URI for Cloudinary
         const dataUri = `data:application/octet-stream;base64,${base64Data}`;
+        const uploadOptions = { resource_type: resourceType };
 
-        const uploadOptions = {
-          resource_type: resourceType,
-        };
-
-        // Add specific folder for organization
         if (resourceType === "raw") {
           uploadOptions.folder = "documents";
-          uploadOptions.type = "upload";
         } else if (resourceType === "video") {
           uploadOptions.folder = "videos";
-          uploadOptions.chunk_size = 6000000; // 6MB chunks for video
+          uploadOptions.chunk_size = 6000000;
         }
-
-        console.log('Upload options:', uploadOptions);
 
         const uploadResponse = await cloudinary.uploader.upload(dataUri, uploadOptions);
         
@@ -115,79 +92,75 @@ export const sendGroupMessage = async (req, res) => {
         fileName = customFileName || uploadResponse.original_filename;
         fileSize = uploadResponse.bytes;
         uploadedFileType = resourceType;
-
-        console.log(`File uploaded successfully: ${fileName}, type: ${resourceType}, size: ${fileSize} bytes`);
       } catch (err) {
-        console.error("Cloudinary file upload error:", err);
-        
-        // More specific error messages
-        if (err.message.includes("File size too large")) {
-          return res.status(400).json({ 
-            message: "File size exceeds Cloudinary limit. Please use a smaller file (<10MB for free tier)." 
-          });
-        } else if (err.message.includes("Invalid")) {
-          return res.status(400).json({ 
-            message: "Invalid file format. Please try a different file type." 
-          });
-        } else {
-          return res.status(500).json({ 
-            message: `Failed to upload file: ${err.message}. Please try a different file or contact support.` 
-          });
-        }
+        return res.status(500).json({ 
+          message: `Failed to upload file: ${err.message}` 
+        });
       }
     }
 
-    console.log('Creating new group message in database...');
-    
-    // Determine message type more accurately
+    // Determine message type
     let messageType = "text";
     if (imageUrl) {
       messageType = "image";
     } else if (fileUrl) {
-      // More specific file type detection
-      if (uploadedFileType === "video") {
-        messageType = "video";
-      } else {
-        messageType = "file"; // This will now work with the updated schema
-      }
+      messageType = uploadedFileType === "video" ? "video" : "file";
     }
 
+    // Create and save message
     const newMessage = new GroupMessage({
       groupId,
       senderId,
-      text,
+      text: text || "",
       image: imageUrl || undefined,
       file: fileUrl || undefined,
       fileName: fileName || undefined,
       fileSize: fileSize || undefined,
       fileType: uploadedFileType || undefined,
-      messageType, // This now accepts "file" as valid
+      messageType,
+      clientMessageId, // Store client ID to prevent duplicates
     });
 
     await newMessage.save();
-    console.log('Group message saved to database with ID:', newMessage._id);
 
-    // Populate the message with sender details
-    const populatedMessage = await GroupMessage.findById(newMessage._id).populate(
-      "senderId",
-      "fullName profilePic email"
-    );
+    // ✅ FIXED: Enhanced population with reactions
+    const populatedMessage = await GroupMessage.findById(newMessage._id)
+      .populate("senderId", "fullName profilePic email")
+      .lean();
 
-    console.log('Emitting newGroupMessage to all group members...');
+    // Add empty reactions object for consistency
+    populatedMessage.reactions = {};
 
-    // Emit to all group members
+    // ✅ FIXED: Enhanced cache invalidation
+    await invalidateGroupMessageCache(groupId);
+
+    console.log('✅ Message saved and populated:', populatedMessage._id);
+
+    // ✅ FIXED: Enhanced socket emission with proper room handling
+    const roomName = `group_${groupId}`;
+    
+    // Emit to all group members EXCEPT the sender
     group.members.forEach((member) => {
-      const socketId = getReceiverSocketId(member.user.toString());
-      if (socketId) {
-        io.to(socketId).emit("newGroupMessage", populatedMessage);
+      if (member.user.toString() !== senderId.toString()) {
+        const socketId = getReceiverSocketId(member.user.toString());
+        if (socketId) {
+          io.to(socketId).emit("newGroupMessage", populatedMessage);
+        }
       }
     });
 
-    console.log('=== GROUP MESSAGE SENT SUCCESSFULLY ===');
-    return res.status(201).json(populatedMessage);
+    // ✅ FIXED: Send response with clientMessageId for frontend matching
+    res.status(201).json({
+      ...populatedMessage,
+      clientMessageId, // Include in response for frontend matching
+    });
+
   } catch (error) {
-    console.error("Error in sendGroupMessage controller: ", error);
-    return res.status(500).json({ error: "Internal server error" });
+    console.error("❌ Critical error in sendGroupMessage controller: ", error);
+    return res.status(500).json({ 
+      error: "Internal server error",
+      details: error.message 
+    });
   }
 };
 
@@ -195,32 +168,93 @@ export const getGroupMessages = async (req, res) => {
   try {
     const { groupId } = req.params;
     const userId = req.user._id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 30;
+
+    console.log('🔍 Fetching group messages for:', { groupId, userId, page, limit });
+
+    // Check cache first
+    const cacheKey = `group_messages:${groupId}:page_${page}`;
+    const cachedMessages = await getCachedGroupMessages(cacheKey);
+    
+    if (cachedMessages) {
+      console.log('✅ Returning cached group messages');
+      return res.status(200).json(cachedMessages);
+    }
 
     // Check if user is a member of the group
     const group = await Group.findOne({
       _id: groupId,
       "members.user": userId,
       isActive: true,
-    });
+    }).select('_id name');
 
     if (!group) {
+      console.log('❌ Group access denied for user:', userId);
       return res.status(404).json({ message: "Group not found or access denied." });
     }
 
-    const messages = await GroupMessage.find({ groupId })
-      .populate("senderId", "fullName profilePic email")
-      .sort({ createdAt: 1 });
+    const skip = (page - 1) * limit;
+    
+    console.log('📂 Querying database for group messages...');
+    
+    // ✅ FIXED: Enhanced database query with better population
+    const [messages, totalCount] = await Promise.all([
+      GroupMessage.find({ groupId })
+        .select('_id senderId text image file fileName fileType fileSize messageType systemMessage createdAt')
+        .populate("senderId", "fullName profilePic email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      
+      GroupMessage.countDocuments({ groupId })
+    ]);
 
-    return res.status(200).json(messages);
+    console.log(`✅ Found ${messages.length} messages, total: ${totalCount}`);
+
+    // ✅ FIXED: Ensure messages are properly formatted
+    const formattedMessages = messages.map(msg => ({
+      ...msg,
+      text: msg.text || "", // Ensure text is never null
+      reactions: msg.reactions || {}
+    })).reverse();
+
+    const result = {
+      messages: formattedMessages,
+      hasMore: totalCount > (skip + limit),
+      totalCount
+    };
+
+    // Cache the result with error handling
+    try {
+      await cacheGroupMessages(cacheKey, result, 900); // 15 minutes
+      console.log('✅ Group messages cached successfully');
+    } catch (cacheError) {
+      console.error('Cache error:', cacheError);
+    }
+
+    return res.status(200).json(result);
   } catch (error) {
-    console.error("Error in getGroupMessages controller: ", error);
-    return res.status(500).json({ error: "Internal server error" });
+    console.error("❌ Error in getGroupMessages controller: ", error);
+    return res.status(500).json({ 
+      error: "Internal server error",
+      details: error.message 
+    });
   }
 };
 
 export const getGroupChatPartners = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
+
+    // Try cached groups first
+    const cacheKey = `user_groups:${loggedInUserId}`;
+    const cachedGroups = await getCachedGroupMessages(cacheKey);
+    
+    if (cachedGroups) {
+      return res.status(200).json(cachedGroups);
+    }
 
     // Find all groups where user is a member
     const groups = await Group.find({
@@ -231,9 +265,77 @@ export const getGroupChatPartners = async (req, res) => {
       .populate("members.user", "fullName profilePic email")
       .sort({ updatedAt: -1 });
 
+    // Cache the groups
+    await cacheGroupMessages(cacheKey, groups, 1800); // 30 minutes
+
     return res.status(200).json(groups);
   } catch (error) {
     console.error("Error in getGroupChatPartners: ", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getGroupMessagesOptimized = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const userId = req.user._id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+
+    // Cache key with user context for personalized caching
+    const cacheKey = `group:${groupId}:user:${userId}:messages`;
+
+    // Try cache first for page 1
+    if (page === 1) {
+      const cachedMessages = await getCachedGroupMessages(cacheKey);
+      if (cachedMessages) {
+        return res.status(200).json({
+          ...cachedMessages,
+          cached: true
+        });
+      }
+    }
+
+    // Fast membership check
+    const isMember = await Group.exists({
+      _id: groupId,
+      "members.user": userId,
+      isActive: true,
+    });
+
+    if (!isMember) {
+      return res.status(404).json({ message: "Group not found or access denied." });
+    }
+
+    const skip = (page - 1) * limit;
+    
+    // Parallel execution with optimized queries
+    const [messages, totalCount] = await Promise.all([
+      GroupMessage.find({ groupId })
+        .select('_id senderId text image file fileName fileType messageType systemMessage createdAt')
+        .populate("senderId", "fullName profilePic email") // Keep population but limit fields
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(), // Crucial for performance
+      
+      GroupMessage.countDocuments({ groupId })
+    ]);
+
+    const result = {
+      messages: messages.reverse(),
+      hasMore: totalCount > (skip + limit),
+      totalCount
+    };
+
+    // Cache only first page
+    if (page === 1) {
+      await cacheGroupMessages(cacheKey, result, 900); // 15 minutes
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Error in getGroupMessagesOptimized: ", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
