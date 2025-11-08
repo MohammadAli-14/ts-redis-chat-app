@@ -16,6 +16,7 @@ export const ENV = {
   ARCJET_KEY: process.env.ARCJET_KEY,
   ARCJET_ENV: process.env.ARCJET_ENV,
   SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
+  REDIS_URL: process.env.REDIS_URL,
   
   // SMTP Configuration
   SMTP_HOST: process.env.SMTP_HOST,
