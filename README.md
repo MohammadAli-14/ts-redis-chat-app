@@ -62,6 +62,7 @@ A full-featured, production-ready real-time chat application built with the MERN
 - ✅ Socket connection debugging
 
 ## 🏗️ Architecture
+<img width="3175" height="2702" alt="deepseek_mermaid_20251212_4b25e8" src="https://github.com/user-attachments/assets/fd09db57-5c13-4471-b46f-1d7db599cb50" />
 
 ```mermaid
 graph TB
