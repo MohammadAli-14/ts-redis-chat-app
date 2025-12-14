@@ -12,8 +12,7 @@
 
 A full-featured, production-ready real-time chat application built with the MERN stack featuring WebSocket communication, Redis caching, and advanced messaging capabilities.
 
-[Live Demo](https://thug-slayers-chat-app-frontend.vercel.app/) · [Report Bug](https://github.com/MohammadAli-14/ts-redis-chat-app/issues) · [Request Feature](https://github.com/MohammadAli-14/ts-redis-chat-app/issues)
-
+[Live Demo](https://thug-slayers-chat-app-frontend.vercel.app/) 
 </div>
 
 ## ✨ Features
