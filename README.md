@@ -1,264 +1,203 @@
-# MERN Real-Time Chat Application 🚀
-
+MERN Real-Time Chat Application 🚀
 <div align="center">
+https://img.shields.io/badge/Status-Active-success
+https://img.shields.io/badge/Version-2.0-blue
+https://img.shields.io/badge/License-MIT-green
+https://img.shields.io/badge/MongoDB-4.4-green
+https://img.shields.io/badge/Express-4.18-blue
+https://img.shields.io/badge/React-18-red
+https://img.shields.io/badge/Node.js-20-green
 
-![Chat Application](https://img.shields.io/badge/Status-Active-success)
-![Version](https://img.shields.io/badge/Version-2.0-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-![MongoDB](https://img.shields.io/badge/MongoDB-4.4-green)
-![Express](https://img.shields.io/badge/Express-4.18-blue)
-![React](https://img.shields.io/badge/React-18-red)
-![Node.js](https://img.shields.io/badge/Node.js-20-green)
+A full-featured, production-ready real-time chat application built with the MERN stack featuring Socket.io for real-time communication, Redis for advanced caching, and Arcjet for enterprise-grade security.
 
-A full-featured, production-ready real-time chat application built with the MERN stack featuring WebSocket communication, Redis caching, and advanced messaging capabilities.
+Live Demo
 
-[Live Demo](https://thug-slayers-chat-app-frontend.vercel.app/) 
 </div>
+✨ Features
+🤖 Real-Time Messaging
+✅ Instant one-to-one and group messaging
 
-## ✨ Features
+✅ Socket.io-based real-time bidirectional communication
 
-### 🤖 **Real-Time Messaging**
-- ✅ Instant one-to-one and group messaging
-- ✅ WebSocket-based real-time communication using Socket.IO
-- ✅ Message reactions (👍, ❤️, 😂, etc.)
-- ✅ Read receipts and typing indicators
-- ✅ Message editing and deletion
+✅ Message reactions (👍, ❤️, 😂, etc.)
 
-### 👥 **Group Management**
-- ✅ Create public/private groups with custom avatars
-- ✅ Add/remove members dynamically
-- ✅ Group admin controls and permissions
-- ✅ Group information and member management
-- ✅ Separate models for group and private messages
+✅ Read receipts and typing indicators
 
-### 🔐 **Authentication & Security**
-- ✅ JWT-based authentication with refresh tokens
-- ✅ Email verification with OTP system
-- ✅ Password reset functionality
-- ✅ Rate limiting and security via Arcjet
-- ✅ Session management with Redis
+✅ Message editing and deletion
 
-### 🎨 **User Experience**
-- ✅ Gaming-themed responsive design for mobile & desktop
-- ✅ Keyboard sound effects and audio feedback
-- ✅ Animated UI components with Tailwind CSS
-- ✅ Virtualized message lists for optimal performance
-- ✅ Real-time connection status monitoring
+👥 Group Management
+✅ Create public/private groups with custom avatars
 
-### ⚡ **Performance & Optimization**
-- ✅ Redis caching for frequent queries with advanced strategies
-- ✅ Message pagination and lazy loading
-- ✅ WebSocket connection pooling and optimization
-- ✅ Optimized database queries with MongoDB indexing
-- ✅ Advanced state management with Zustand
+✅ Add/remove members dynamically
 
-### 📊 **Monitoring & Reliability**
-- ✅ Comprehensive health check endpoints
-- ✅ Performance monitoring utilities
-- ✅ Automated cleanup of unverified accounts
-- ✅ Multi-provider email notification system
-- ✅ Socket connection debugging tools
+✅ Group admin controls and permissions
 
-## 🏗️ Architecture Overview
+✅ Separate models for group and private messages
 
-This application follows a modern microservices-inspired architecture with clear separation of concerns:
+🔐 Authentication & Security
+✅ JWT-based authentication with refresh tokens
 
-- **Frontend**: React 18 with Vite, Zustand for state management, Socket.IO client for real-time communication
-- **Backend**: Express.js with Socket.IO server, MongoDB for data persistence, Redis for caching and sessions
-- **Communication**: Real-time bidirectional communication via WebSockets with REST API fallback
-- **Storage**: MongoDB for primary data, Redis for sessions and cache, Cloudinary for media files
+✅ Email verification with OTP system
 
-## 📁 Project Structure
+✅ Password reset functionality
 
-```
+✅ Arcjet for rate limiting and security protection
+
+✅ Session management with Redis
+
+🎨 User Experience
+✅ Gaming-themed responsive design for mobile & desktop
+
+✅ Keyboard sound effects and audio feedback
+
+✅ Animated UI components with Tailwind CSS
+
+✅ Virtualized message lists for optimal performance
+
+✅ Real-time connection status monitoring
+
+⚡ Performance & Optimization
+✅ Redis caching for frequent queries with advanced strategies
+
+✅ Message pagination and lazy loading
+
+✅ Socket.io connection optimization
+
+✅ Optimized database queries with MongoDB indexing
+
+✅ Advanced state management with Zustand
+
+📊 Monitoring & Reliability
+✅ Comprehensive health check endpoints
+
+✅ Performance monitoring utilities
+
+✅ Automated cleanup of unverified accounts (cron job)
+
+✅ Multi-provider email notification system
+
+✅ Socket connection debugging tools
+
+🏗️ Architecture Overview
+This application follows a modern, layered architecture designed for scalability and performance:
+
+Frontend: React 18 with Vite, Zustand for state management, Socket.io client for real-time communication
+
+Backend: Express.js with Socket.io server, MongoDB for data persistence
+
+Communication: Real-time bidirectional communication via Socket.io (WebSocket protocol with fallbacks)
+
+Storage: MongoDB for primary data, Redis for sessions and cache, Cloudinary for media files
+
+Security: Arcjet middleware for API protection and rate limiting
+
+📁 Project Structure
+text
 ts-redis-chat-app/
 ├── backend/                 # Express.js backend server
 │   ├── src/
 │   │   ├── automation/     # Automated tasks (cron jobs)
 │   │   │   └── removeUnverifiedAccounts.js
 │   │   ├── controllers/    # Route controllers
-│   │   │   ├── auth.controller.js
-│   │   │   ├── group.controller.js
-│   │   │   ├── groupMessage.controller.js
-│   │   │   ├── health.controller.js
-│   │   │   ├── message.controller.js
-│   │   │   ├── reaction.controller.js
-│   │   │   └── readReceipt.controller.js
 │   │   ├── emails/         # Email service implementations
-│   │   │   ├── emailHandlers.js
-│   │   │   ├── emailTemplates.js
-│   │   │   ├── emailTest.js
-│   │   │   └── sendEmail.js
 │   │   ├── lib/           # Utilities and service configurations
-│   │   │   ├── advancedCache.js
-│   │   │   ├── arcjet.js
-│   │   │   ├── cache.js
-│   │   │   ├── cloudinary.js
-│   │   │   ├── cron.js
-│   │   │   ├── db.js
-│   │   │   ├── env.js
-│   │   │   ├── nodemailer.js
-│   │   │   ├── redis.js
-│   │   │   ├── resend.js
-│   │   │   ├── sendgrid.js
-│   │   │   ├── socket.js
-│   │   │   └── utils.js
+│   │   │   ├── advancedCache.js # Advanced Redis caching strategies
+│   │   │   ├── arcjet.js        # Arcjet security configuration
+│   │   │   ├── cache.js         # Base Redis cache wrapper
+│   │   │   ├── socket.js        # Socket.io server setup
+│   │   │   └── ...
 │   │   ├── middleware/    # Express middleware
-│   │   │   ├── arcjet.middleware.js
-│   │   │   ├── auth.middleware.js
-│   │   │   ├── rateLimit.middleware.js
-│   │   │   └── socket.auth.middleware.js
+│   │   │   ├── arcjet.middleware.js # Arcjet protection
+│   │   │   ├── auth.middleware.js   # JWT verification
+│   │   │   └── socket.auth.middleware.js # Socket.io connection auth
 │   │   ├── models/        # MongoDB schemas
-│   │   │   ├── Group.js
-│   │   │   ├── GroupMessage.js
-│   │   │   ├── Message.js
-│   │   │   ├── MessageReaction.js
-│   │   │   └── User.js
 │   │   ├── routes/        # API route definitions
-│   │   │   ├── auth.route.js
-│   │   │   ├── group.routes.js
-│   │   │   ├── groupMessage.routes.js
-│   │   │   ├── message.routes.js
-│   │   │   ├── reaction.routes.js
-│   │   │   └── readReceipt.routes.js
 │   │   └── server.js      # Main server entry point
 │   ├── package.json
-│   └── .gitignore
+│   └── .env
 │
 ├── frontend/              # React frontend application
 │   ├── src/
 │   │   ├── components/    # Reusable UI components
-│   │   │   ├── ActiveTabSwitch.jsx
-│   │   │   ├── AddMembersModal.jsx
-│   │   │   ├── BorderAnimatedContainer.jsx
-│   │   │   ├── ChatContainer.jsx
-│   │   │   ├── ChatHeader.jsx
-│   │   │   ├── ChatsList.jsx
-│   │   │   ├── ContactList.jsx
-│   │   │   ├── CreateGroupModal.jsx
-│   │   │   ├── GroupChatContainer.jsx
-│   │   │   ├── GroupInfoModal.jsx
-│   │   │   ├── GroupsList.jsx
-│   │   │   ├── LandingPage.jsx
-│   │   │   ├── LogoutConfirmationDialog.jsx
-│   │   │   ├── MessageDebugger.jsx
-│   │   │   ├── MessageInput.jsx
-│   │   │   ├── MessageReactions.jsx
-│   │   │   ├── MessageTimeDisplay.jsx
-│   │   │   ├── MessagesLoadingSkeleton.jsx
-│   │   │   ├── NoChatHistoryPlaceholder.jsx
-│   │   │   ├── NoChatsFound.jsx
-│   │   │   ├── NoConversationPlaceholder.jsx
-│   │   │   ├── PageLoader.jsx
-│   │   │   ├── ProfileHeader.jsx
-│   │   │   ├── SocketDebugger.jsx
-│   │   │   ├── SocketStatus.jsx
-│   │   │   ├── UsersLoadingSkeleton.jsx
-│   │   │   └── VirtualizedMessageList.jsx
 │   │   ├── hooks/         # Custom React hooks
-│   │   │   ├── useGroupMessages.js
-│   │   │   ├── useKeyboardSound.js
-│   │   │   └── useMobile.js
 │   │   ├── pages/         # Page components
-│   │   │   ├── ChatPage.jsx
-│   │   │   ├── ForgotPasswordPage.jsx
-│   │   │   ├── LoginPage.jsx
-│   │   │   ├── OTPVerificationPage.jsx
-│   │   │   └── SignUpPage.jsx
 │   │   ├── store/         # Zustand state management
-│   │   │   ├── useAuthStore.js
-│   │   │   ├── useChatStore.js
-│   │   │   └── useOptimizedChatStore.js
 │   │   ├── utils/         # Utility functions
-│   │   │   ├── logger.js
-│   │   │   ├── performance.js
-│   │   │   ├── performanceMonitor.js
-│   │   │   └── timeFormatter.js
 │   │   ├── lib/           # External library configs
-│   │   │   └── axios.js
+│   │   │   └── axios.js   # HTTP client configuration
 │   │   ├── App.jsx        # Main App component
 │   │   └── main.jsx       # React entry point
-│   ├── public/            # Static assets
-│   │   ├── sound/         # Audio files
-│   │   │   ├── keystroke1.mp3
-│   │   │   ├── keystroke2.mp3
-│   │   │   ├── keystroke3.mp3
-│   │   │   ├── keystroke4.mp3
-│   │   │   ├── mouse-click.mp3
-│   │   │   └── notification.mp3
-│   │   ├── avatar.png
-│   │   ├── forgot.png
-│   │   ├── guild-members-squad1.png
-│   │   ├── login.png
-│   │   ├── signup.png
-│   │   ├── thug-slayers-badge.png
-│   │   └── vite.svg
+│   ├── public/            # Static assets (images, sounds)
 │   ├── package.json
 │   ├── tailwind.config.js
-│   ├── vite.config.js
-│   └── .gitignore
+│   └── .env
 │
 └── package.json           # Root package.json
-```
+🚀 Quick Start
+Prerequisites
+Node.js (v18 or higher)
 
-## 🚀 Quick Start
+MongoDB (v6 or higher) - Installation Guide
 
-### Prerequisites
+Redis (v7 or higher) - Installation Guide
 
-- **Node.js** (v18 or higher)
-- **MongoDB** (v6 or higher)
-- **Redis** (v7 or higher)
-- **npm** or **yarn**
+npm or yarn
 
-### Installation
+Installation
+Clone the repository
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/MohammadAli-14/ts-redis-chat-app.git
-   cd ts-redis-chat-app
-   ```
+bash
+git clone https://github.com/MohammadAli-14/ts-redis-chat-app.git
+cd ts-redis-chat-app
+Setup Backend
 
-2. **Setup Backend**
-   ```bash
-   cd backend
-   npm install
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+bash
+cd backend
+npm install
+cp .env.example .env
+# Edit .env with your configuration (see below)
+Setup Frontend
 
-3. **Setup Frontend**
-   ```bash
-   cd ../frontend
-   npm install
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+bash
+cd ../frontend
+npm install
+cp .env.example .env
+# Edit .env with your configuration (see below)
+Start Development Servers
 
-4. **Start Development Servers**
+Terminal 1 - Start Redis & MongoDB (if not running):
 
-   **Terminal 1 - Backend:**
-   ```bash
-   cd backend
-   npm run dev
-   ```
+bash
+# Start MongoDB (method depends on your OS)
+sudo systemctl start mongod  # Linux
+# or
+mongod --dbpath /path/to/data
 
-   **Terminal 2 - Frontend:**
-   ```bash
-   cd frontend
-   npm run dev
-   ```
+# Start Redis
+redis-server
+Terminal 2 - Backend:
 
-5. **Access the application:**
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:5000
-   - API Health: http://localhost:5000/api/health
+bash
+cd backend
+npm run dev
+Terminal 3 - Frontend:
 
-## 🔧 Configuration
+bash
+cd frontend
+npm run dev
+Access the application:
 
-### Environment Variables
+Frontend: http://localhost:5173
 
-**Backend (.env)**
-```env
+Backend API: http://localhost:5000
+
+API Health: http://localhost:5000/api/health
+
+🔧 Configuration
+Environment Variables
+Backend (.env)
+
+env
 # Server
 PORT=5000
 NODE_ENV=development
@@ -268,278 +207,179 @@ MONGODB_URI=mongodb://localhost:27017/chat-app
 REDIS_URL=redis://localhost:6379
 
 # Security
-JWT_SECRET=your_super_secret_jwt_key_here
-ARCJET_KEY=your_arcjet_api_key
+JWT_SECRET=your_super_secret_jwt_key_here_change_this
+ARCJET_KEY=your_arcjet_api_key_optional_for_rate_limiting
 
 # Email Service (choose one)
 EMAIL_SERVICE=sendgrid  # Options: sendgrid, resend, nodemailer
 SENDGRID_API_KEY=your_sendgrid_key
 RESEND_API_KEY=your_resend_key
 
-# Cloudinary for File Uploads
+# Cloudinary for File Uploads (Optional)
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
-```
+Frontend (.env)
 
-**Frontend (.env)**
-```env
+env
 VITE_API_URL=http://localhost:5000
 VITE_SOCKET_URL=http://localhost:5000
 VITE_ENVIRONMENT=development
-```
+📡 Core API & Socket Events
+Authentication Endpoints
+Method	Endpoint	Description
+POST	/api/auth/register	Register new user
+POST	/api/auth/login	User login
+POST	/api/auth/verify-otp	Verify email OTP
+POST	/api/auth/logout	User logout
+Socket.io Events (Real-Time)
+Client → Server Events:
 
-## 📡 API Documentation
-
-### Authentication Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| `POST` | `/api/auth/register` | Register new user | No |
-| `POST` | `/api/auth/login` | User login | No |
-| `POST` | `/api/auth/verify-otp` | Verify email OTP | No |
-| `POST` | `/api/auth/forgot-password` | Request password reset | No |
-| `POST` | `/api/auth/reset-password` | Reset password | No |
-| `POST` | `/api/auth/logout` | User logout | Yes |
-| `GET` | `/api/auth/me` | Get current user | Yes |
-
-### Message Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| `GET` | `/api/messages/:userId` | Get messages with user | Yes |
-| `POST` | `/api/messages` | Send new message | Yes |
-| `PUT` | `/api/messages/:id` | Update message | Yes |
-| `DELETE` | `/api/messages/:id` | Delete message | Yes |
-| `GET` | `/api/messages/unread/count` | Get unread count | Yes |
-
-### Group Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| `GET` | `/api/groups` | Get user's groups | Yes |
-| `POST` | `/api/groups` | Create new group | Yes |
-| `GET` | `/api/groups/:id` | Get group details | Yes |
-| `PUT` | `/api/groups/:id` | Update group | Yes |
-| `DELETE` | `/api/groups/:id` | Delete group | Yes |
-| `POST` | `/api/groups/:id/members` | Add member | Yes |
-| `DELETE` | `/api/groups/:id/members/:userId` | Remove member | Yes |
-| `GET` | `/api/groups/:id/messages` | Get group messages | Yes |
-
-### WebSocket Events
-
-**Client → Server:**
-```javascript
-// Send message
+javascript
+// Send a private message
 socket.emit('send_message', {
-  to: 'userId',
+  to: 'userId_or_groupId',
   content: 'Hello!',
-  type: 'text'
+  type: 'text' // or 'image', 'file'
 });
 
 // Typing indicator
 socket.emit('typing', {
-  to: 'userId',
+  to: 'userId_or_groupId',
   isTyping: true
 });
 
-// Message reaction
+// React to a message
 socket.emit('message_reaction', {
-  messageId: 'msg123',
+  messageId: 'msg_123',
   emoji: '❤️'
 });
+Server → Client Events:
 
-// Read receipt
-socket.emit('read_receipt', {
-  messageId: 'msg123'
-});
-```
-
-**Server → Client:**
-```javascript
-// Listen for events
+javascript
+// Listen for new messages
 socket.on('new_message', (message) => {
-  console.log('New message:', message);
+  // Update UI with new message
 });
 
-socket.on('message_reaction', (reaction) => {
-  console.log('Reaction:', reaction);
-});
-
+// Listen for typing indicators
 socket.on('typing', ({ userId, isTyping }) => {
-  console.log(`${userId} is ${isTyping ? 'typing...' : 'not typing'}`);
+  // Show/hide typing indicator for user
 });
 
-socket.on('read_receipt', ({ messageId, userId }) => {
-  console.log(`${userId} read message ${messageId}`);
+// Listen for message reactions
+socket.on('message_reaction', (reaction) => {
+  // Update message with new reaction
 });
+🐳 Docker Deployment
+Using Docker Compose (Recommended)
+Ensure you have a docker-compose.yml file in the root (as described in your docs).
 
-socket.on('user_status', ({ userId, isOnline }) => {
-  console.log(`${userId} is ${isOnline ? 'online' : 'offline'}`);
-});
-```
+Build and run all services:
 
-## 🐳 Docker Deployment
+bash
+docker-compose up --build
+Access the application:
 
-### Using Docker Compose
+Frontend: http://localhost:3000
 
-1. **Create `docker-compose.yml`:**
-   ```yaml
-   version: '3.8'
-   services:
-     mongodb:
-       image: mongo:6
-       container_name: chat-mongodb
-       ports:
-         - "27017:27017"
-       volumes:
-         - mongodb_data:/data/db
-       environment:
-         MONGO_INITDB_ROOT_USERNAME: admin
-         MONGO_INITDB_ROOT_PASSWORD: password
-     
-     redis:
-       image: redis:7-alpine
-       container_name: chat-redis
-       ports:
-         - "6379:6379"
-       command: redis-server --requirepass password
-     
-     backend:
-       build: ./backend
-       container_name: chat-backend
-       ports:
-         - "5000:5000"
-       environment:
-         - NODE_ENV=production
-         - MONGODB_URI=mongodb://admin:password@mongodb:27017/chat-app?authSource=admin
-         - REDIS_URL=redis://:password@redis:6379
-       depends_on:
-         - mongodb
-         - redis
-     
-     frontend:
-       build: ./frontend
-       container_name: chat-frontend
-       ports:
-         - "3000:3000"
-       depends_on:
-         - backend
-   
-   volumes:
-     mongodb_data:
-   ```
+Backend API: http://localhost:5000
 
-2. **Build and run:**
-   ```bash
-   docker-compose up --build
-   ```
+🌐 Production Deployment
+Deploy to Vercel (Frontend)
+The frontend is optimized for Vercel deployment with a vercel.json configuration.
 
-## 🌐 Production Deployment
-
-### Deploy to Vercel (Frontend)
-The frontend is already deployed at: [https://thug-slayers-chat-app-frontend.vercel.app/](https://thug-slayers-chat-app-frontend.vercel.app/)
-
-To redeploy:
-```bash
+bash
 cd frontend
 npm run build
-# Deploy to Vercel using their CLI or GitHub integration
-```
-
-### Deploy to Railway (Backend)
-```bash
+# Connect your GitHub repo to Vercel or use Vercel CLI
+Deploy Backend to Railway/Render
+bash
 cd backend
-railway up
-```
+# Configure environment variables in your hosting dashboard
+# Ensure MongoDB and Redis add-ons are connected
+🛠️ Technology Stack
+Backend
+Node.js & Express - Server framework
 
-## 🛠️ Built With
+Socket.io - Real-time, bidirectional communication
 
-### Backend Stack
-- [**Express.js**](https://expressjs.com/) - Web framework
-- [**MongoDB**](https://www.mongodb.com/) - NoSQL database
-- [**Socket.io**](https://socket.io/) - Real-time communication
-- [**Redis**](https://redis.io/) - Caching & session store
-- [**JWT**](https://jwt.io/) - Authentication tokens
-- [**Arcjet**](https://arcjet.com/) - Security & rate limiting
+MongoDB & Mongoose - NoSQL database and ODM
 
-### Frontend Stack
-- [**React 18**](https://reactjs.org/) - UI library
-- [**Vite**](https://vitejs.dev/) - Build tool & dev server
-- [**Tailwind CSS**](https://tailwindcss.com/) - Styling
-- [**Zustand**](https://github.com/pmndrs/zustand) - State management
-- [**Socket.io Client**](https://socket.io/docs/v4/client-api/) - WebSocket client
-- [**Axios**](https://axios-http.com/) - HTTP client
+Redis - Session store and cache layer
 
-## 🔒 Security Features
+JWT - Stateless authentication
 
-| Feature | Implementation | Purpose |
-|---------|---------------|---------|
-| **JWT Authentication** | Bearer tokens with expiration | Secure API access |
-| **Password Hashing** | bcrypt with 12 rounds | Protection against breaches |
-| **Rate Limiting** | Arcjet middleware | DDoS protection |
-| **Input Validation** | Schema validation | SQL/NoSQL injection prevention |
-| **CORS Configuration** | Whitelisted origins | Cross-origin protection |
-| **WebSocket Auth** | Middleware for socket connections | Secure real-time communication |
+Arcjet - Security and rate limiting middleware
 
-## 🤝 Contributing
+Cloudinary - Media file storage
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Frontend
+React 18 - UI library with hooks
 
-### How to Contribute
+Vite - Next-generation build tool
 
-1. **Fork the Project**
-2. **Create your Feature Branch**
-   ```bash
-   git checkout -b feature/AmazingFeature
-   ```
-3. **Commit your Changes**
-   ```bash
-   git commit -m 'Add some AmazingFeature'
-   ```
-4. **Push to the Branch**
-   ```bash
-   git push origin feature/AmazingFeature
-   ```
-5. **Open a Pull Request**
+Tailwind CSS - Utility-first styling
 
-### Development Guidelines
+Zustand - Lightweight state management
 
-- Write meaningful commit messages
-- Add tests for new features
-- Update documentation as needed
-- Follow the existing code style
-- Use ESLint and Prettier for code formatting
+Socket.io Client - Real-time communication
 
-## 📄 License
+Axios - HTTP client for REST API calls
 
-This project is licensed under the MIT License - see the [LICENSE](frontend/LICENSE) file for details.
+🔒 Security Implementation
+Layer	Technology	Purpose
+Transport	HTTPS (in production)	Encrypts data in transit
+Authentication	JWT Tokens	Stateless user sessions
+Rate Limiting	Arcjet	Protects against DDoS/brute force
+Input Validation	Express Validator	Prevents injection attacks
+Password Hashing	bcrypt (12 rounds)	Secures user credentials
+Session Storage	Redis	Fast, in-memory session store
+CORS	Express CORS middleware	Controls cross-origin requests
+🤝 Contributing
+Contributions are welcome! Please follow these steps:
 
-## 👥 Authors
+Fork the repository
 
-- **Mohammad Ali** - *Full Stack Developer* - [GitHub](https://github.com/MohammadAli-14)
+Create a feature branch (git checkout -b feature/AmazingFeature)
 
-## 🙏 Acknowledgments
+Commit your changes (git commit -m 'Add some AmazingFeature')
 
-- Icons and images from [FlatIcon](https://www.flaticon.com)
-- Sound effects from [Freesound](https://freesound.org)
-- The amazing open-source community
-- All contributors who have helped shape this project
+Push to the branch (git push origin feature/AmazingFeature)
 
-## 🔗 Important Links
+Open a Pull Request
 
-- **Live Demo**: [https://thug-slayers-chat-app-frontend.vercel.app/](https://thug-slayers-chat-app-frontend.vercel.app/)
-- **Main Repository**: [https://github.com/MohammadAli-14/ts-redis-chat-app](https://github.com/MohammadAli-14/ts-redis-chat-app)
-- **Frontend Repository**: [https://github.com/MohammadAli-14/Thug-Slayers-Chat-App-Frontend](https://github.com/MohammadAli-14/Thug-Slayers-Chat-App-Frontend)
+Development Guidelines
+Follow existing code style and structure
 
----
+Write meaningful commit messages
+
+Update documentation as needed
+
+Test your changes thoroughly
+
+📄 License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+👥 Author
+Mohammad Ali - Full Stack Developer - GitHub
+
+🙏 Acknowledgments
+Icons and images from FlatIcon
+
+Sound effects from Freesound
+
+The amazing open-source community
+
+🔗 Links
+Live Demo: https://thug-slayers-chat-app-frontend.vercel.app/
+
+Main Repository: https://github.com/MohammadAli-14/ts-redis-chat-app
 
 <div align="center">
+⭐ If you find this project useful, please consider giving it a star! ⭐
+Built with modern technologies for real-world performance.
 
-### ⭐ Don't forget to star this repo if you found it useful! ⭐
-
-Made with ❤️ by the development team.
-
-[Back to Top ↑](#mern-real-time-chat-application-)
+Back to Top ↑
 
 </div>
